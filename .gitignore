@@ -19,3 +19,7 @@ workspace/log_ngp.txt
 models/
 *.log
 dist
+_runtime/
+_downloads/
+avatars/wav2lip/face_detection/detection/sfd/s3fd.pth
+avatars/musetalk/utils/face_detection/detection/sfd/s3fd.pth

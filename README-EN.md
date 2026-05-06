@@ -46,6 +46,25 @@ Troubleshooting for video connection issues: <https://mp.weixin.qq.com/s/MVUkxxh
 
 
 ## 2. Quick Start
+### 2.1 Windows One-Command End-to-End Setup (Recommended)
+After cloning this repo on a new Windows PC, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup_end2end.ps1
+powershell -ExecutionPolicy Bypass -File .\run_fixed_ui.ps1
+```
+
+If setup fails with a Windows file-lock error (for example `onnxruntime_providers_shared.dll`), stop any running LiveTalking/conda Python processes and rerun setup.
+
+What this does automatically:
+- creates/updates conda envs for LiveTalking and XTTS server
+- installs required dependencies
+- downloads `wav2lip256.pth`, `wav2lip256_avatar1.tar.gz`, and `s3fd` model
+- prepares the fixed assistant UI and starts services
+
+Fixed UI URL:
+- `http://127.0.0.1:8040/`
+
 - Download Models  
 Quark Cloud Drive: <https://pan.quark.cn/s/83a750323ef0>    
 Google Drive: <https://drive.google.com/drive/folders/1FOC_MD6wdogyyX_7V1d4NDIO7P9NlSAJ?usp=sharing>  
