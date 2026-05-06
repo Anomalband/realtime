@@ -37,6 +37,7 @@ from aiortc.rtcrtpsender import RTCRtpSender
 from server.webrtc import HumanPlayer
 from avatars.base_avatar import BaseAvatar
 from llm import llm_response
+from pipeline.speech_pipeline import LowLatencySpeechPipeline
 import registry
 from server.routes import setup_routes
 from server.rtc_manager import RTCManager
@@ -47,6 +48,8 @@ import random
 import shutil
 import asyncio
 import torch
+import time
+import requests
 from io import BytesIO
 from typing import Dict
 from utils.logger import logger
@@ -94,7 +97,57 @@ def build_avatar_session(sessionid:str, params:dict)->BaseAvatar:
         opt_this.customopt = json.loads(custom_config)
 
     avatar_session = registry.create("avatar", opt.model, opt=opt_this, model=model, avatar=avatar_this)
+    avatar_session.runtime_metrics = {
+        "asr_ms": None,
+        "llm_ms": None,
+        "tts_ms": None,
+        "e2e_ms": None,
+        "rtf": None,
+        "last_answer": "",
+        "updated_at": time.time(),
+    }
     return avatar_session
+
+def prewarm_xtts_server(opt):
+    if opt.tts != "xtts" or not getattr(opt, "xtts_prewarm", True):
+        return
+    start = time.perf_counter()
+    try:
+        rsp = requests.get(f"{opt.TTS_SERVER}/studio_speakers", timeout=15)
+        rsp.raise_for_status()
+        speakers = rsp.json() or {}
+        if not speakers:
+            logger.warning("xtts startup prewarm skipped: no studio speakers found.")
+            return
+        speaker_name = next(iter(speakers.keys()))
+        rounds = max(1, int(getattr(opt, "xtts_prewarm_rounds", 2)))
+        for i in range(rounds):
+            round_start = time.perf_counter()
+            payload = dict(speakers[speaker_name])
+            payload["text"] = "ok"
+            payload["language"] = getattr(opt, "xtts_language", "en")
+            payload["stream_chunk_size"] = str(getattr(opt, "xtts_stream_chunk_size", 2))
+            payload["add_wav_header"] = True
+            with requests.post(
+                f"{opt.TTS_SERVER}/tts_stream",
+                json=payload,
+                stream=True,
+                timeout=30,
+            ) as stream_rsp:
+                stream_rsp.raise_for_status()
+                for chunk in stream_rsp.iter_content(chunk_size=None):
+                    if chunk:
+                        logger.info(
+                            "xtts startup prewarm: round=%d/%d speaker=%s first_chunk=%.3fs",
+                            i + 1,
+                            rounds,
+                            speaker_name,
+                            time.perf_counter() - round_start,
+                        )
+                        break
+        logger.info("xtts startup prewarm completed in %.3fs", time.perf_counter() - start)
+    except Exception:
+        logger.exception("xtts startup prewarm failed")
 
 async def offer(request):
     return await rtc_manager.handle_offer(request)
@@ -135,6 +188,11 @@ def main():
         model = load_model(opt)
         global_avatars[opt.avatar_id] = load_avatar(opt.avatar_id)
         warm_up(opt.batch_size,global_avatars[opt.avatar_id],160)
+
+    if getattr(opt, "pipeline_prewarm", True):
+        pipeline = LowLatencySpeechPipeline.get(opt)
+        pipeline.prewarm()
+    prewarm_xtts_server(opt)
 
     # init rtc manager
     session_manager.init_builder(build_avatar_session)

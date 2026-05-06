@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Avatar Assistant</title>
+    <link rel="stylesheet" href="/assistant-ui.css" />
+</head>
+<body>
+    <main class="page">
+        <section class="avatar-shell">
+            <header class="telemetry-bar">
+                <div class="chip chip-online" id="chip-online">ONLINE</div>
+                <div class="chip">FPS <span id="metric-fps">--</span></div>
+                <div class="chip">LLM <span id="metric-llm">--</span></div>
+                <div class="chip">TTS <span id="metric-tts">--</span></div>
+                <div class="chip">RTF <span id="metric-rtf">--</span></div>
+                <div class="chip">E2E <span id="metric-e2e">--</span></div>
+            </header>
+
+            <div class="video-wrap">
+                <video id="avatar-video" autoplay playsinline></video>
+                <audio id="avatar-audio" autoplay></audio>
+
+                <div class="hud-bottom">
+                    <div class="answer-box" id="answer-box">
+                        Asistan cevabi burada gorunur.
+                    </div>
+                    <button id="talk-btn" class="talk-btn" type="button">Konus</button>
+                </div>
+            </div>
+
+            <footer class="status-line" id="status-line">Baglanti kuruluyor...</footer>
+        </section>
+    </main>
+
+    <script src="/assistant-ui.js"></script>
+</body>
+</html>
